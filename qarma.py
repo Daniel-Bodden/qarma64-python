@@ -12,7 +12,6 @@ state_permutation = [0,11,6,13,10,1,12,7,5,14,3,8,15,4,9,2]
 state_permutation_inv = [state_permutation.index(x) for x in range(16)]
 tweak_permutation = [6,5,14,15,0,1,2,3,7,12,13,4,8,9,10,11]
 
-
 def HexToBlock(hexstring):
     return [int(b,16) for b in hexstring]
 
@@ -47,29 +46,66 @@ def rot(b, r):
     return ((b << r) | (b >> (4-r))) % 16
 
 
+def MixColumns_M42(col):
+    '''
 
-def MixColumns_M41(col):
-    newcol = [0]*4
-    newcol[0] = rot(col[1],1) ^ rot(col[2],2) ^ rot(col[3],3)
-    newcol[1] = rot(col[0],3) ^ rot(col[2],1) ^ rot(col[3],2)
-    newcol[2] = rot(col[0],2) ^ rot(col[1],3) ^ rot(col[3],1)
-    newcol[3] = rot(col[0],1) ^ rot(col[1],2) ^ rot(col[2],3)
-    return newcol
+    use diffusion matrix from publication : https://eprint.iacr.org/2016/444.pdf
 
-def MixColumns_M43(col):
+    newcol[0] =  0 ρc ρb ρa
+    newcol[1] =  ρa 0 ρc ρb
+    newcol[2] =  ρb ρa 0 ρc
+    newcol[3] =  ρc ρb ρa 0
+
+    ROT = circ(0,ρ^a,ρ^b ,ρ^c)
+
+    a = 1
+    b = 2
+    c = 1
+
+    '''
     newcol = [0]*4
+
     newcol[0] = rot(col[1],1) ^ rot(col[2],2) ^ rot(col[3],1)
     newcol[1] = rot(col[0],1) ^ rot(col[2],1) ^ rot(col[3],2)
     newcol[2] = rot(col[0],2) ^ rot(col[1],1) ^ rot(col[3],1)
     newcol[3] = rot(col[0],1) ^ rot(col[1],2) ^ rot(col[2],1)
+
     return newcol
 
-UsedMixColumns = MixColumns_M43
+def MixColumns_M43(col):
+    '''
+    use diffusion matrix from publication : https://eprint.iacr.org/2016/444.pdf
+
+    newcol[0] =  0 ρc ρb ρa
+    newcol[1] =  ρa 0 ρc ρb
+    newcol[2] =  ρb ρa 0 ρc
+    newcol[3] =  ρc ρb ρa 0
+
+    ROT = circ(0,ρ^a,ρˆb ,ρ^c)
+    ROT = circ(0,ρ,ρˆ4 ,ρ^5 )
+
+    a = 1
+    B = 4
+    C = 5
+    '''
+
+    #create new cols
+    newcol = [0]*4
+
+    newcol[0] = rot(col[1],5) ^ rot(col[2],4) ^ rot(col[3],1)
+    newcol[1] = rot(col[0],1) ^ rot(col[2],5) ^ rot(col[3],4)
+    newcol[2] = rot(col[0],4) ^ rot(col[1],1) ^ rot(col[3],5)
+    newcol[3] = rot(col[0],5) ^ rot(col[1],4) ^ rot(col[2],1)
+
+    return newcol
+
+
 def MixColumns(state):
     mixed_state = [0 for _ in range(16)]
     for i in range(4):
         incol = [state[0+i], state[4+i], state[8+i], state[12+i]]
-        outcol = UsedMixColumns(incol)
+        # Change here the diffusion matrix you want to use
+        outcol = MixColumns_M42(incol)
         mixed_state[0+i], mixed_state[4+i], mixed_state[8+i], mixed_state[12+i] = outcol
     return mixed_state
 
@@ -181,14 +217,14 @@ if __name__ == "__main__":
     C6 = qarma64(P, T, w0+k0,rounds=6)
     C7 = qarma64(P, T, w0+k0,rounds=7)
 
-    print "5 rounds"
-    print "Expected:   3ee99a6c82af0c38"
-    print "Calculated: " + C5
+    print("5 rounds")
+    print("Expected:   3ee99a6c82af0c38")
+    print("Calculated: " + C5)
 
-    print "6 rounds"
-    print "Expected:   9f5c41ec525603c9"
-    print "Calculated: " + C6
+    print("6 rounds")
+    print("Expected:   9f5c41ec525603c9")
+    print("Calculated: " + C6)
 
-    print "7 rounds"
-    print "Expected:   bcaf6c89de930765"
-    print "Calculated: " + C7
+    print("7 rounds")
+    print("Expected:   bcaf6c89de930765")
+    print("Calculated: " + C7)
